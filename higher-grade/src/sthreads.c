@@ -51,7 +51,7 @@ int timer_signal(int timer_type);
 void set_timer(int type, void (*handler)(int), int ms);
 void stop_timer(int type, void (*handler)(int));
 void timer_handler(int signum);
-
+void delete_t(int index);
 
 void init_context(ucontext_t *ctx, void(*func)(), ucontext_t *next){
 	void *stack = malloc(STACK_SIZE);
@@ -125,6 +125,24 @@ void schedule(){
 	}
 }
 
+void delete_t(int index){
+	printf("delete_t\n");
+	free(threads[index].ctx.uc_stack.ss_sp);
+
+	for(int i=index; i<t_num-1; i++){
+		threads[i] = threads[i+1];
+	}
+
+
+	t_num--;
+	threads = (thread_t*) realloc(threads, sizeof(thread_t)*t_num);
+	if(threads == 0x0){
+		perror("delete thread");
+		exit(EXIT_FAILURE);
+	}
+}
+
+
 /*		------------------ Timer Functions ------------------		*/
 
 int timer_signal(int timer_type){
@@ -191,6 +209,7 @@ void stop_timer(int type, void (*handler)(int)){
 }
 
 void timer_handler(int signum){
+	// stop timer and schedule a new thread
 	stop_timer(TIMER_TYPE, timer_handler);
 	schedule();
 }
@@ -272,6 +291,7 @@ void  done(){
 	}
 
 	// schedule another thread
+	stop_timer(TIMER_TYPE, timer_handler);
 	schedule();
 }
 
@@ -288,6 +308,13 @@ tid_t join() {
 			}
 
 			schedule();
+			break;
+		}
+	}
+
+	for(int i=0; i<t_num; i++){
+		if(threads[i].state == terminated){
+			delete_t(i);
 			break;
 		}
 	}

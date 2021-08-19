@@ -70,7 +70,7 @@ void fibonacci_slow() {
       // Restart on overflow.
       n = 0;
     }
-    printf(" fib(%02d) = %d\n", n, fib(n));
+    printf("slow: fib(%02d) = %d\n", n, fib(n));
     n = (n + 1) % INT_MAX;
   }
 }
@@ -88,7 +88,7 @@ void fibonacci_fast() {
   int next = a + b;
 
   while(true) {
-    printf(" fib(%02d) = %d\n", n, a);
+    printf("fast: fib(%02d) = %d\n", n, a);
     next = a + b;
     a = b;
     b = next;
@@ -137,12 +137,12 @@ int main(){
 	spawn(numbers);
 	spawn(letters);
 	spawn(magic_numbers);
-
-	
 	spawn(fibonacci_slow);
+	//spawn(fibonacci_fast);
 	
 	int count = 0;
 	while(count < 30) {
+		printf("main\n");
 		count++;
 		yield();
 	}
