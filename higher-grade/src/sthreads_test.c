@@ -18,8 +18,11 @@ void numbers() {
   while (true) {
     printf(" n = %d\n", n);
     n = (n + 1) % (INT_MAX);
-    if (n > 3) done();
-    yield();
+    //if (n > 3) done();
+    //yield();
+    if(n == 4) printf("\t\tdone by %u!\n", join());
+    else if(n > 6) done();
+    else yield();
   }
 }
 
@@ -127,7 +130,28 @@ void magic_numbers() {
 
 
 int main(){
-  puts("\n==== Test program for the Simple Threads API ====\n");
+	puts("\n==== Test program for the Simple Threads API ====\n");
 
-  init(); // Initialization
+	init(); // Initialization
+
+	spawn(numbers);
+	spawn(letters);
+	spawn(magic_numbers);
+
+	
+	spawn(fibonacci_slow);
+	
+	int count = 0;
+	while(count < 30) {
+		count++;
+		yield();
+	}
 }
+
+
+
+
+
+
+
+
