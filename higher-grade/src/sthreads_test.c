@@ -127,7 +127,7 @@ static volatile int counter2 = 0;
 lock_t m;
 
 void add(){
-	for(int i=0; i<10000; i++){
+	for(int i=0; i<5000; i++){
 		counter1 = counter1 + 1;
 		printf("counter1: %d\n", counter1);
 	}
@@ -169,18 +169,16 @@ int main(){
 	//spawn(add);
 	spawn(add_lock);
 	spawn(add_lock);
-	spawn(add_lock);
-	spawn(add_lock);
-	join();
-	join();
-/*
+	//spawn(add_lock);
+	//spawn(add_lock);
+
 	int count = 0;
-	while(count < 1000) {
+	while(count < 30000) {
 	//while(1){
 		printf("main - %d\n", count);
 		count++;
 		yield();
-	}*/
+	}
 	printf("counter1 = %d\n", counter1);
 	printf("counter2 = %d\n", counter2);
 }

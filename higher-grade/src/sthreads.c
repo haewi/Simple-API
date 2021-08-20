@@ -117,11 +117,7 @@ void schedule(){
 	}
 
 	set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
-	if(cur == -1 && ready_t == -1){
-		threads[0].state = running;
-		setcontext(d
-	}
-	else if(cur == -1){ // if there is no thread running
+	if(cur == -1){
 		threads[ready_t].state = running;
 		setcontext(&(threads[ready_t].ctx));
 	}
@@ -371,10 +367,16 @@ tid_t join() {
 
 void lock(lock_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
+	printf("usec: %d\n", usec);
 	if(m->flag == 0){
-		//printf("hold lock\n");
+		printf("hold lock\n");
 		m->flag = 1;
-		set_timer(TIMER_TYPE, timer_handler, usec);
+		if(usec == 0){
+			schedule();
+		}
+		else{
+			set_timer(TIMER_TYPE, timer_handler, usec);
+		}
 	}
 	else {
 		printf("\tlock held sleep\n");
@@ -390,27 +392,36 @@ void lock(lock_t * m){
 
 		schedule();
 	}
-
 }
 
 void unlock(lock_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
-	//printf("free lock\n");
+	printf("free lock\n");
 
 	// if there is a thread who wants this mutex
 	for(int i=0; i<t_num; i++){
 		if(threads[i].mid == m->mid){
-			//printf("%d wanted this mutex\n", i);
+			printf("%d wanted this mutex\n", i);
 			threads[i].mid = -1;
 			threads[i].state = ready;
 			// restart timer and resume timer
-			set_timer(TIMER_TYPE, timer_handler, usec);
+			if(usec ==0){
+				schedule();
+			}
+			else{
+				set_timer(TIMER_TYPE, timer_handler, usec);
+			}
 			return;
 		}
 	}
-	//printf("no thread wanted\n");
+	printf("no thread wanted\n");
 	m->flag = 0;
-	set_timer(TIMER_TYPE, timer_handler, usec);
+	if(usec ==0){
+		schedule();
+	}
+	else{
+		set_timer(TIMER_TYPE, timer_handler, usec);
+	}
 }
 
 
