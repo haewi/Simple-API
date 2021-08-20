@@ -122,6 +122,28 @@ void magic_numbers() {
   }
 }
 
+static volatile int counter1 = 0;
+static volatile int counter2 = 0;
+lock_t m;
+
+void add(){
+	for(int i=0; i<10000; i++){
+		counter1 = counter1 + 1;
+		printf("counter1: %d\n", counter1);
+	}
+	done();
+}
+
+void add_lock(){
+	for(int i=0; i<10000; i++){
+		lock(&m);
+		counter2 = counter2 + 1;
+		printf("counter2: %d\n", counter2);
+		unlock(&m);
+	}
+	done();
+}
+
 /*******************************************************************************
                                      main()
 
@@ -133,19 +155,34 @@ int main(){
 	puts("\n==== Test program for the Simple Threads API ====\n");
 
 	init(); // Initialization
+	
+	lock_init(&m);
 
-	spawn(numbers);
-	spawn(letters);
-	spawn(magic_numbers);
-	spawn(fibonacci_slow);
+	//spawn(numbers);
+	//spawn(letters);
+	//spawn(magic_numbers);
+	//spawn(fibonacci_slow);
 	//spawn(fibonacci_fast);
 	
+	//printf("counter: %d\n", counter);
+	//spawn(add);
+	//spawn(add);
+	spawn(add_lock);
+	spawn(add_lock);
+	spawn(add_lock);
+	spawn(add_lock);
+	join();
+	join();
+/*
 	int count = 0;
-	while(count < 30) {
-		printf("main\n");
+	while(count < 1000) {
+	//while(1){
+		printf("main - %d\n", count);
 		count++;
 		yield();
-	}
+	}*/
+	printf("counter1 = %d\n", counter1);
+	printf("counter2 = %d\n", counter2);
 }
 
 
