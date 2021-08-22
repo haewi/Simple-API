@@ -124,7 +124,7 @@ void magic_numbers() {
 
 static volatile int counter1 = 0;
 static volatile int counter2 = 0;
-lock_t m;
+mutex_t m;
 
 void add(){
 	for(int i=0; i<5000; i++){
@@ -144,6 +144,61 @@ void add_lock(){
 	done();
 }
 
+#define MAX 20
+int buffer[MAX];
+int fill_ptr = 0;
+int use_ptr = 0;
+int count = 0;
+
+cond_t empty, fill;
+mutex_t mutex;
+
+void put(int value){
+	buffer[fill_ptr] = value;
+	fill_ptr = (fill_ptr + 1) % MAX;
+	count++;
+}
+
+int get(){
+	int tmp = buffer[use_ptr];
+	use_ptr = (use_ptr + 1) % MAX;
+	count--;
+	return tmp;
+}
+
+void producer(){
+	int i=0;
+	while(1){
+		printf("producer\n");
+		lock(&mutex);
+		while(count == MAX){
+			printf("producer - cond_wait\n");
+			cond_wait(&empty, &mutex);
+		}
+		printf("\tput %i\n", i);
+		put(i);
+		cond_signal(&fill);
+		unlock(&mutex);
+		i++;
+	}
+}
+
+void consumer(){
+	while(1){
+		printf("consumer\n");
+		lock(&mutex);
+		while(count == 0){
+			printf("consumer - cond_wait\n");
+			cond_wait(&fill, &mutex);
+		}
+		int tmp = get();
+		printf("\tget %i\n", tmp);
+		cond_signal(&empty);
+		unlock(&mutex);
+	}
+}
+
+
 /*******************************************************************************
                                      main()
 
@@ -157,6 +212,8 @@ int main(){
 	init(); // Initialization
 	
 	lock_init(&m);
+	cond_init(&empty);
+	cond_init(&fill);
 
 	//spawn(numbers);
 	//spawn(letters);
@@ -167,20 +224,31 @@ int main(){
 	//printf("counter: %d\n", counter);
 	//spawn(add);
 	//spawn(add);
-	spawn(add_lock);
-	spawn(add_lock);
+	//spawn(add_lock);
+	//spawn(add_lock);
 	//spawn(add_lock);
 	//spawn(add_lock);
 
+	spawn(consumer);
+	spawn(producer);
+	spawn(consumer);
+
 	int count = 0;
-	while(count < 30000) {
-	//while(1){
+	/*while(count < 30000) {
 		printf("main - %d\n", count);
 		count++;
 		yield();
+	}*/
+	//printf("counter1 = %d\n", counter1);
+	//printf("counter2 = %d\n", counter2);
+
+	while(count <20){
+		printf("main = %d\n", count);
+		count++;
+		yield();
 	}
-	printf("counter1 = %d\n", counter1);
-	printf("counter2 = %d\n", counter2);
+
+	printf("main done\n");
 }
 
 

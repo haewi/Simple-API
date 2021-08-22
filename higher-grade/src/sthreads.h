@@ -29,13 +29,19 @@ struct thread {
   state_t state;
   ucontext_t ctx;
   int mid; // the mutex id that the thread is waiting for (-1 if thread is not waiting for any mutex to be freed);
+  int cid; // the cond_t id that the thread is waiting for (-1 if thread is not waiting for any cond_t to be signaled);
   thread_t *next; /* can use this to create a linked list of threads */
 };
 
 typedef struct __lock_t {
 	int mid; // mutex id
 	int flag; // 1: lock is held, 0: lock is not held
-} lock_t;
+} mutex_t;
+
+typedef struct __cond_t{
+	int cid;
+	mutex_t * m;
+} cond_t;
 
 /*******************************************************************************
                                Simple Threads API
@@ -91,10 +97,23 @@ void  done();
 */
 tid_t join();
 
-void lock_init(lock_t * m );
+void lock_init(mutex_t * m );
+void lock(mutex_t * m);
+void unlock(mutex_t * m);
 
-void lock(lock_t * m);
-
-void unlock(lock_t * m);
+void cond_init(cond_t * c);
+void cond_wait(cond_t * c, mutex_t * m);
+void cond_signal(cond_t *c);
 
 #endif
+
+
+
+
+
+
+
+
+
+
+

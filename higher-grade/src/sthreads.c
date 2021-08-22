@@ -38,9 +38,6 @@ void set_timer(int type, void (*handler)(int), int us);
 int stop_timer(int type, void (*handler)(int));
 void timer_handler(int signum);
 
-void lock_init(lock_t *m);
-
-
 
 /*******************************************************************************
                              Global data structures
@@ -48,9 +45,11 @@ void lock_init(lock_t *m);
                 Add data structures to manage the threads here.
 ********************************************************************************/
 thread_t * threads;
-int ind = 0;
+int t_ind = 0; // thread cursor
 int t_num = 0; // thread number
+int m_ind = 0; // mutex cursor
 int m_num = 0; // mutex number
+int c_num = 0; // cond_t number
 tid_t termin = -1; // the thread id that terminated last
 
 
@@ -88,6 +87,7 @@ void init_thread(thread_t * t, void (*start)()){
 	init_context(&(t->ctx), start, NULL);
 	t->next = NULL;
 	t->mid = -1;
+	t->cid = -1;
 }
 
 void schedule(){
@@ -102,9 +102,9 @@ void schedule(){
 	int ready_t = -1;
 	int cur = -1;
 	for(int i=0; i<t_num; i++){
-		ind = (ind+1) % t_num;
-		if(threads[ind].state == ready){
-			ready_t = ind;
+		t_ind = (t_ind+1) % t_num;
+		if(threads[t_ind].state == ready){
+			ready_t = t_ind;
 			break;
 		}
 	}
@@ -237,13 +237,6 @@ void timer_handler(int signum){
 	schedule();
 }
 
-/*		------------------ Lock Functions ------------------		*/
-
-void lock_init(lock_t *m){
-	m_num++;
-	m->mid = m_num;
-	m->flag = 0;
-}
 
 
 /*		------------------ Queue Functions ------------------		*/
@@ -279,13 +272,12 @@ int  init(){
 
 	schedule();
 
-	ind = 0;
 	return 1;
 }
 
 
 tid_t spawn(void (*start)()){
-	//printf("spawn\n");
+	printf("spawn\n");
 
 	// make space for new thread
 	t_num++;
@@ -328,7 +320,7 @@ void  done(){
 
 	// make all waiting threads to ready
 	for(int i=0; i<t_num; i++){
-		if(threads[i].state == waiting && threads[i].mid < -1){
+		if(threads[i].state == waiting && threads[i].mid < 0 && threads[i].cid < 0){
 			threads[i].state = ready;
 		}
 	}
@@ -365,9 +357,15 @@ tid_t join() {
 	return termin;
 }
 
-void lock(lock_t * m){
+void lock_init(mutex_t *m){
+	m_num++;
+	m->mid = m_num;
+	m->flag = 0;
+}
+
+void lock(mutex_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
-	printf("usec: %d\n", usec);
+	//printf("usec: %d\n", usec);
 	if(m->flag == 0){
 		printf("hold lock\n");
 		m->flag = 1;
@@ -394,7 +392,7 @@ void lock(lock_t * m){
 	}
 }
 
-void unlock(lock_t * m){
+void unlock(mutex_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
 	printf("free lock\n");
 
@@ -425,6 +423,83 @@ void unlock(lock_t * m){
 }
 
 
+void cond_init(cond_t * c){
+	c_num++;
+	c->cid = c_num;
+
+}
+
+void cond_wait(cond_t * c, mutex_t * m){
+	int usec = stop_timer(TIMER_TYPE, timer_handler);
+
+	if(m->flag == 0){
+		perror("[ERROR] cond_wait mutex not held");
+		exit(EXIT_FAILURE);
+	}
+	
+	if(usec != 0){
+		set_timer(TIMER_TYPE, timer_handler, TIMEOUT); // for unlock function
+	}
+	unlock(m);
+	usec = stop_timer(TIMER_TYPE, timer_handler);
+	
+	int index = get_index();
+	threads[index].cid = c->cid;
+	threads[index].state = waiting;
+	c->m = m;
+	
+	// save the context
+	if(getcontext(&(threads[index].ctx)) < 0 ){
+		perror("getcontext");
+		exit(EXIT_FAILURE);
+	}
+
+	schedule();
+
+	lock(m);
+}
+
+void cond_signal(cond_t *c){
+	int usec = stop_timer(TIMER_TYPE, timer_handler);
+	printf("cond_signal\n");
+	
+	if(c->m == 0x0){ // if there is no thread to wake up
+		if(usec == 0x0){
+			schedule();
+		}
+		else{
+			set_timer(TIMER_TYPE, timer_handler, usec);
+		}
+		return;
+	}
+
+	for(int i=0; i<t_num; i++){
+		if(threads[i].cid == c->cid){
+			// there can be more than 1 threads waiting for this signal
+			printf("%d was signaled\n", i);
+
+			threads[i].cid = -1;
+			threads[i].state = ready;
+
+			if(usec == 0){
+				schedule();
+			}
+			else{
+				set_timer(TIMER_TYPE, timer_handler, usec);
+			}
+			return;
+		}
+	}
+	
+	printf("no thread was signaled\n");
+	c->m = 0x0;
+	if(usec == 0){
+		schedule();
+	}
+	else{
+		set_timer(TIMER_TYPE, timer_handler, usec);
+	}
+}
 
 
 
