@@ -30,6 +30,7 @@ struct thread {
   ucontext_t ctx;
   int mid; // the mutex id that the thread is waiting for (-1 if thread is not waiting for any mutex to be freed);
   int cid; // the cond_t id that the thread is waiting for (-1 if thread is not waiting for any cond_t to be signaled);
+  int sid; // the semaphore id that the thread is waiting for (-1 if thread is not waiting for any semaphore to be signaled);
   thread_t *next; /* can use this to create a linked list of threads */
 };
 
@@ -42,6 +43,11 @@ typedef struct __cond_t{
 	int cid;
 	mutex_t * m;
 } cond_t;
+
+typedef struct __sem_t{
+	int sid;
+	int value;
+} sem_t;
 
 /*******************************************************************************
                                Simple Threads API
@@ -104,6 +110,10 @@ void unlock(mutex_t * m);
 void cond_init(cond_t * c);
 void cond_wait(cond_t * c, mutex_t * m);
 void cond_signal(cond_t *c);
+
+void sem_init(sem_t * s, int pshared, int value);
+void sem_wait(sem_t * s);
+void sem_post(sem_t *s);
 
 #endif
 

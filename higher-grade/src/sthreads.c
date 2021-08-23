@@ -24,7 +24,7 @@
 
 /* Stack size for each context. */
 #define STACK_SIZE SIGSTKSZ*100
-#define TIMEOUT 200		// us
+#define TIMEOUT 20		// us
 #define TIMER_TYPE ITIMER_REAL 	// type of timer
 
 void init_context(ucontext_t *ctx, void(*func)(), ucontext_t *next);
@@ -50,6 +50,8 @@ int t_num = 0; // thread number
 int m_ind = 0; // mutex cursor
 int m_num = 0; // mutex number
 int c_num = 0; // cond_t number
+int s_num = 0; // sem_t number
+int s_ind = 0; // semaphore cursor
 tid_t termin = -1; // the thread id that terminated last
 
 
@@ -88,6 +90,7 @@ void init_thread(thread_t * t, void (*start)()){
 	t->next = NULL;
 	t->mid = -1;
 	t->cid = -1;
+	t->sid = -1;
 }
 
 void schedule(){
@@ -264,6 +267,8 @@ int  init(){
 	threads[t_num-1].state = ready;
 	threads[t_num-1].next = NULL;
 	threads[t_num-1].mid = -1;
+	threads[t_num-1].cid = -1;
+	threads[t_num-1].sid = -1;
 	// get main info and initialize it in the thread structure
 	if(getcontext(&(threads[t_num-1].ctx)) < 0){
 		perror("getcontext");
@@ -277,7 +282,7 @@ int  init(){
 
 
 tid_t spawn(void (*start)()){
-	printf("spawn\n");
+	// printf("spawn\n");
 
 	// make space for new thread
 	t_num++;
@@ -501,7 +506,69 @@ void cond_signal(cond_t *c){
 	}
 }
 
+void sem_init(sem_t * s, int pshared, int value){
+	s_num++;
+	s->sid = s_num;
+	s->value = value;
+}
 
+void sem_wait(sem_t * s){
+	int usec = stop_timer(TIMER_TYPE, timer_handler);
+
+	s->value--;
+	// printf("sem_wait -> %d (sid: %d)\n", s->value, s->sid);
+
+	// if the value is negative, wait
+	if(s->value < 0){
+		int index = get_index();
+		threads[index].state = waiting;
+		threads[index].sid = s->sid;
+
+		if(getcontext(&(threads[index].ctx)) < 0){
+			perror("getcontext");
+			exit(EXIT_FAILURE);
+		}
+
+		schedule();
+	}
+	else{ // else continue execution
+		if(usec == 0){
+			schedule();
+		}
+		else{
+			set_timer(TIMER_TYPE, timer_handler, TIMEOUT);
+		}
+	}
+}
+void sem_post(sem_t *s){
+	int usec = stop_timer(TIMER_TYPE, timer_handler);
+
+	s->value++;
+	// printf("sem_post -> %d (sid: %d)\n", s->value, s->sid);
+
+	// if there is a thread waiting
+	if(s->value <= 0){
+		for(int i=0; i<t_num; i++){
+			s_ind = (s_ind+1) % t_num; // set the finding semaphore index of threads
+			// printf("s_ind: %d\n", s_ind);
+
+			if(threads[s_ind].sid == s->sid){
+				printf("%d wanted this semaphore\n", s_ind);
+				threads[s_ind].state = ready;
+				threads[s_ind].sid = -1;
+				break;
+			}
+		}
+	}
+	
+	// continue execution
+	if(usec == 0){
+		schedule();
+	}
+	else{
+		set_timer(TIMER_TYPE, timer_handler, usec);
+	}
+}
 
 
 

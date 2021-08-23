@@ -144,57 +144,100 @@ void add_lock(){
 	done();
 }
 
-#define MAX 20
-int buffer[MAX];
+#define MAX_c 100
+int buffer_c[MAX_c];
 int fill_ptr = 0;
 int use_ptr = 0;
 int count = 0;
 
-cond_t empty, fill;
-mutex_t mutex;
+cond_t empty_c, fill_c;
+mutex_t mutex_c;
 
-void put(int value){
-	buffer[fill_ptr] = value;
-	fill_ptr = (fill_ptr + 1) % MAX;
+void put_c(int value){
+	buffer_c[fill_ptr] = value;
+	fill_ptr = (fill_ptr + 1) % MAX_c;
 	count++;
 }
 
-int get(){
-	int tmp = buffer[use_ptr];
-	use_ptr = (use_ptr + 1) % MAX;
+int get_c(){
+	int tmp = buffer_c[use_ptr];
+	use_ptr = (use_ptr + 1) % MAX_c;
 	count--;
 	return tmp;
 }
 
-void producer(){
+void producer_c(){
 	int i=0;
 	while(1){
 		printf("producer\n");
-		lock(&mutex);
-		while(count == MAX){
+		lock(&mutex_c);
+		while(count == MAX_c){
 			printf("producer - cond_wait\n");
-			cond_wait(&empty, &mutex);
+			cond_wait(&empty_c, &mutex_c);
 		}
-		printf("\tput %i\n", i);
-		put(i);
-		cond_signal(&fill);
-		unlock(&mutex);
+		printf("\tput_c %i\n", i);
+		put_c(i);
+		cond_signal(&fill_c);
+		unlock(&mutex_c);
 		i++;
 	}
 }
 
-void consumer(){
+void consumer_c(){
 	while(1){
 		printf("consumer\n");
-		lock(&mutex);
+		lock(&mutex_c);
 		while(count == 0){
 			printf("consumer - cond_wait\n");
-			cond_wait(&fill, &mutex);
+			cond_wait(&fill_c, &mutex_c);
 		}
-		int tmp = get();
-		printf("\tget %i\n", tmp);
-		cond_signal(&empty);
-		unlock(&mutex);
+		int tmp = get_c();
+		printf("\tget_c %i\n", tmp);
+		cond_signal(&empty_c);
+		unlock(&mutex_c);
+	}
+}
+
+#define MAX_s 200
+int buffer_s[MAX_s];
+int fill_s = 0;
+int use_s = 0;
+sem_t empty_s, full_s, mutex_s;
+
+void put_s(int value){
+	buffer_s[fill_s] = value;
+	fill_s = (fill_s + 1) % MAX_s;
+}
+
+int get_s(){
+	int tmp = buffer_s[use_s];
+	use_s = (use_s + 1) % MAX_s;
+	return tmp;
+}
+
+void producer_s(){
+	int i=0;
+	while(1){
+		printf("\n");
+		sem_wait(&empty_s);
+		sem_wait(&mutex_s);
+		put_s(i);
+		printf("producer put_s %d\n", i);
+		i++;
+		sem_post(&mutex_s);
+		sem_post(&full_s);
+	}
+}
+
+void consumer_s(){
+	while(1){
+		printf("\n");
+		sem_wait(&full_s);
+		sem_wait(&mutex_s);
+		int tmp = get_s();
+		printf("consumer got_s %d\n", tmp);
+		sem_post(&mutex_s);
+		sem_post(&empty_s);
 	}
 }
 
@@ -212,8 +255,13 @@ int main(){
 	init(); // Initialization
 	
 	lock_init(&m);
-	cond_init(&empty);
-	cond_init(&fill);
+
+	cond_init(&empty_c);
+	cond_init(&fill_c);
+
+	sem_init(&empty_s, 0, MAX_s);
+	sem_init(&full_s, 0, 0);
+	sem_init(&mutex_s, 0, 1);
 
 	//spawn(numbers);
 	//spawn(letters);
@@ -221,32 +269,41 @@ int main(){
 	//spawn(fibonacci_slow);
 	//spawn(fibonacci_fast);
 	
+	// lock test
 	//printf("counter: %d\n", counter);
-	//spawn(add);
-	//spawn(add);
-	//spawn(add_lock);
-	//spawn(add_lock);
-	//spawn(add_lock);
+	// spawn(add);
+	// spawn(add);
+	spawn(add_lock);
+	spawn(add_lock);
+	spawn(add_lock);
 	//spawn(add_lock);
 
-	spawn(consumer);
-	spawn(producer);
-	spawn(consumer);
+
+	// conditional variable test
+	// spawn(consumer_c);
+	// spawn(producer_c);
+	// spawn(consumer_c);
+
+	// semaphore test
+	// spawn(producer_s);
+	// spawn(consumer_s);
+	// spawn(producer_s);
+	// spawn(consumer_s);
 
 	int count = 0;
-	/*while(count < 30000) {
+	while(count < 700) {
 		printf("main - %d\n", count);
 		count++;
 		yield();
-	}*/
-	//printf("counter1 = %d\n", counter1);
-	//printf("counter2 = %d\n", counter2);
-
-	while(count <20){
-		printf("main = %d\n", count);
-		count++;
-		yield();
 	}
+	printf("counter1 = %d\n", counter1);
+	printf("counter2 = %d\n", counter2);
+
+	// while(count <15){
+	// 	printf("main = %d\n", count);
+	// 	count++;
+	// 	yield();
+	// }
 
 	printf("main done\n");
 }
