@@ -287,9 +287,9 @@ int main(){
 
 	// semaphore test
 	// spawn(producer_s);
-	spawn(consumer_s);
-	spawn(producer_s);
-	spawn(consumer_s);
+	// spawn(consumer_s);
+	// spawn(producer_s);
+	// spawn(consumer_s);
 
 	int count = 0;
 	// while(count < 30000) {
