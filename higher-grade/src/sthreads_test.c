@@ -273,9 +273,9 @@ int main(){
 	//printf("counter: %d\n", counter);
 	// spawn(add);
 	// spawn(add);
-	spawn(add_lock);
-	spawn(add_lock);
-	spawn(add_lock);
+	// spawn(add_lock);
+	// spawn(add_lock);
+	// spawn(add_lock);
 	//spawn(add_lock);
 
 
@@ -291,7 +291,7 @@ int main(){
 	// spawn(consumer_s);
 
 	int count = 0;
-	while(count < 700) {
+	while(count < 30000) {
 		printf("main - %d\n", count);
 		count++;
 		yield();
