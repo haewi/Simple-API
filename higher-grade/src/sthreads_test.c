@@ -283,27 +283,28 @@ int main(){
 	// spawn(consumer_c);
 	// spawn(producer_c);
 	// spawn(consumer_c);
+	// spawn(producer_c);
 
 	// semaphore test
 	// spawn(producer_s);
-	// spawn(consumer_s);
-	// spawn(producer_s);
-	// spawn(consumer_s);
+	spawn(consumer_s);
+	spawn(producer_s);
+	spawn(consumer_s);
 
 	int count = 0;
-	while(count < 30000) {
-		printf("main - %d\n", count);
-		count++;
-		yield();
-	}
-	printf("counter1 = %d\n", counter1);
-	printf("counter2 = %d\n", counter2);
-
-	// while(count <15){
-	// 	printf("main = %d\n", count);
+	// while(count < 30000) {
+	// 	printf("main - %d\n", count);
 	// 	count++;
 	// 	yield();
 	// }
+	// printf("counter1 = %d\n", counter1);
+	// printf("counter2 = %d\n", counter2);
+
+	while(count <100){
+		printf("main = %d\n", count);
+		count++;
+		yield();
+	}
 
 	printf("main done\n");
 }

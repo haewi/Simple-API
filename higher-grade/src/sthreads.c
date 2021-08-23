@@ -94,10 +94,10 @@ void init_thread(thread_t * t, void (*start)()){
 }
 
 void schedule(){
-	for(int i=0; i<t_num; i++){
-		printf("threads[%d].state: %u\n", i, threads[i].state);
-	}
-	printf("schedule\n");
+	// for(int i=0; i<t_num; i++){
+	// 	printf("threads[%d].state: %u\n", i, threads[i].state);
+	// }
+	// printf("schedule\n");
 	if(t_num == 1) { // there is no ready state thread
 		threads[0].state = running;
 		return;
@@ -372,7 +372,7 @@ void lock(mutex_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
 	//printf("usec: %d\n", usec);
 	if(m->flag == 0){
-		printf("hold lock\n");
+		// printf("hold lock\n");
 		m->flag = 1;
 		if(usec == 0){
 			schedule();
@@ -382,7 +382,7 @@ void lock(mutex_t * m){
 		}
 	}
 	else {
-		printf("\tlock held sleep\n");
+		// printf("\tlock held sleep\n");
 		int index = get_index();
 		threads[index].mid = m->mid;
 		threads[index].state = waiting;
@@ -399,12 +399,12 @@ void lock(mutex_t * m){
 
 void unlock(mutex_t * m){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
-	printf("free lock\n");
+	// printf("free lock\n");
 
 	// if there is a thread who wants this mutex
 	for(int i=0; i<t_num; i++){
 		if(threads[i].mid == m->mid){
-			printf("%d wanted this mutex\n", i);
+			// printf("%d wanted this mutex\n", i);
 			threads[i].mid = -1;
 			threads[i].state = ready;
 			// restart timer and resume timer
@@ -417,7 +417,7 @@ void unlock(mutex_t * m){
 			return;
 		}
 	}
-	printf("no thread wanted\n");
+	// printf("no thread wanted\n");
 	m->flag = 0;
 	if(usec ==0){
 		schedule();
@@ -466,7 +466,7 @@ void cond_wait(cond_t * c, mutex_t * m){
 
 void cond_signal(cond_t *c){
 	int usec = stop_timer(TIMER_TYPE, timer_handler);
-	printf("cond_signal\n");
+	// printf("cond_signal\n");
 	
 	if(c->m == 0x0){ // if there is no thread to wake up
 		if(usec == 0x0){
@@ -481,7 +481,7 @@ void cond_signal(cond_t *c){
 	for(int i=0; i<t_num; i++){
 		if(threads[i].cid == c->cid){
 			// there can be more than 1 threads waiting for this signal
-			printf("%d was signaled\n", i);
+			// printf("%d was signaled\n", i);
 
 			threads[i].cid = -1;
 			threads[i].state = ready;
@@ -496,7 +496,7 @@ void cond_signal(cond_t *c){
 		}
 	}
 	
-	printf("no thread was signaled\n");
+	// printf("no thread was signaled\n");
 	c->m = 0x0;
 	if(usec == 0){
 		schedule();
@@ -553,7 +553,7 @@ void sem_post(sem_t *s){
 			// printf("s_ind: %d\n", s_ind);
 
 			if(threads[s_ind].sid == s->sid){
-				printf("%d wanted this semaphore\n", s_ind);
+				// printf("%d wanted this semaphore\n", s_ind);
 				threads[s_ind].state = ready;
 				threads[s_ind].sid = -1;
 				break;
